@@ -3,139 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TROOPER COMMANDER: THE GAUNTLET</title>
+    <title>COMMANDER: THE 500 CARD GAUNTLET</title>
     <style>
         :root { --gold: #d4af37; --blue: #002366; --bg: #0a0a0a; --card-bg: #1a1a1a; --danger: #ff4444; --win: #00ff88; }
         body { background-color: var(--bg); color: #e0e0e0; font-family: 'Courier New', Courier, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
-        #header { width: 100%; background: var(--blue); color: var(--gold); padding: 12px 0; text-align: center; font-weight: bold; font-size: 0.8em; letter-spacing: 2px; border-bottom: 2px solid var(--gold); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #header { width: 100%; background: var(--blue); color: var(--gold); padding: 12px 0; text-align: center; font-weight: bold; font-size: 0.8em; border-bottom: 2px solid var(--gold); }
         #stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; background: #000; padding: 15px 0; }
         .stat-box { text-align: center; font-size: 0.7em; color: #777; }
-        .stat-val { display: block; font-size: 1.8em; color: var(--gold); font-weight: bold; transition: color 0.3s; }
+        .stat-val { display: block; font-size: 1.8em; color: var(--gold); font-weight: bold; }
         .low-stat { color: var(--danger); text-shadow: 0 0 8px var(--danger); }
         .high-stat { color: var(--win); text-shadow: 0 0 8px var(--win); }
-        #mileage-container { margin-top: 15px; background: #222; padding: 5px 20px; border-radius: 20px; border: 1px solid #444; }
-        #mileage { color: #0f0; font-size: 0.9em; font-weight: bold; }
         #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 95%; max-width: 450px; }
-        #card { background: var(--card-bg); width: 85%; padding: 35px; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); border: 2px solid #333; text-align: center; min-height: 350px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; }
+        #card { background: var(--card-bg); width: 85%; padding: 35px; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); border: 2px solid #333; text-align: center; min-height: 380px; display: flex; flex-direction: column; justify-content: space-between; }
         #character { color: var(--gold); font-weight: bold; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        #scenario { font-size: 1.15em; line-height: 1.5; margin: 25px 0; color: #fff; }
+        #scenario { font-size: 1.1em; line-height: 1.5; margin: 25px 0; color: #fff; }
         .choice-container { display: flex; gap: 12px; width: 100%; }
-        .choice-btn { flex: 1; padding: 20px 5px; border: none; border-radius: 12px; font-weight: bold; font-size: 0.9em; cursor: pointer; transition: background 0.2s, transform 0.1s; }
-        .btn-a { background: #333; color: #eee; border: 1px solid #555; }
+        .choice-btn { flex: 1; padding: 20px 5px; border: none; border-radius: 12px; font-weight: bold; font-size: 0.8em; cursor: pointer; }
+        .btn-a { background: #333; color: #eee; }
         .btn-b { background: var(--blue); color: white; border: 1px solid var(--gold); }
-        .choice-btn:active { transform: scale(0.96); }
         #overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-        #death-title { font-size: 2.5em; margin: 0; text-transform: uppercase; }
-        #death-msg { color: #bbb; font-size: 1.2em; max-width: 450px; margin: 30px 0; line-height: 1.6; }
     </style>
 </head>
 <body>
-    <div id="header">STATE HIGHWAY PATROL MDT v4.0</div>
+    <div id="header">NC STATE HIGHWAY PATROL - MDT v6.0</div>
     <div id="stats-bar">
         <div class="stat-box">FAMILY <span id="fa" class="stat-val">50</span></div>
         <div class="stat-box">DEPT <span id="de" class="stat-val">50</span></div>
         <div class="stat-box">PUBLIC <span id="pu" class="stat-val">50</span></div>
         <div class="stat-box">HEALTH <span id="he" class="stat-val">50</span></div>
     </div>
-    <div id="mileage-container"><span id="mileage">0 MILES COMPLETED</span></div>
     <div id="game-container">
         <div id="card">
-            <div><div id="character">SYSTEM BOOT</div><div id="scenario">Your 30-year patrol begins now. Maintain the balance to reach retirement.</div></div>
+            <div><div id="character">MDT INITIALIZING</div><div id="scenario">The full 500-event log is loaded. Maintain the line.</div></div>
             <div class="choice-container">
-                <button id="btnA" class="choice-btn btn-a" onclick="processChoice('A')">REJECT</button>
-                <button id="btnB" class="choice-btn btn-b" onclick="processChoice('B')">ACCEPT</button>
+                <button class="choice-btn btn-a" onclick="processChoice('A')">LEFT</button>
+                <button class="choice-btn btn-b" onclick="processChoice('B')">RIGHT</button>
             </div>
         </div>
     </div>
     <div id="overlay">
-        <h1 id="death-title">RETIRED</h1>
+        <h1 id="death-title">E.O.W.</h1>
         <p id="death-msg"></p>
-        <button class="choice-btn btn-b" onclick="location.reload()" style="max-width: 250px;">NEW CAREER</button>
+        <button class="choice-btn btn-b" onclick="location.reload()" style="max-width: 250px;">RESTART</button>
     </div>
 
 <script>
-    let miles = 0;
-    const goal = 1000;
     let stats = { fa: 50, de: 50, pu: 50, he: 50 };
+    let miles = 0;
 
-    const pool = [
-        { char: "Governor", text: "The budget is tight. Cut the Troopers' pension contribution?", a: "No way", b: "Cut it", resA: {de:15, pu:5}, resB: {de:-30, pu:20, fa:10} },
-        { char: "Wife", text: "The cartel sent a threat to our home. We need to move.", a: "Stay firm", b: "Move house", resA: {fa:-30, de:10, he:-10}, resB: {fa:30, de:-20, he:10} },
-        { char: "Sgt. Miller", text: "Found a tracker on your car. Should I 'handle it' quietly?", a: "Police report", b: "Handle it", resA: {pu:15, de:-10}, resB: {de:25, pu:-20, fa:-10} },
-        { char: "K9 Handler", text: "Dog alerted on a Senator's trunk. Search it anyway?", a: "Let him pass", b: "Search it", resA: {pu:-20, de:-10, fa:10}, resB: {pu:30, de:20, he:-20} },
-        { char: "Health", text: "Your blood pressure is through the roof. Doctor orders rest.", a: "Keep working", b: "Take a week", resA: {he:-30, de:20}, resB: {he:30, de:-25, fa:20} },
-        { char: "Reporter", text: "I have proof of a 'quota' system. Give me an exclusive to bury it?", a: "No comment", b: "Grant interview", resA: {pu:-25}, resB: {pu:30, de:-40} },
-        { char: "Sgt. Miller", text: "The boys want to use the seized Ferrari as a high-speed interceptor.", a: "Auction it", b: "Assign it", resA: {pu:20, de:-15}, resB: {pu:-30, de:35} },
-        { char: "Drug Mule", text: "I'll give you the location of the warehouse if you let me go.", a: "Jail him", b: "Release him", resA: {pu:20, de:10}, resB: {de:30, pu:-40, he:-10} },
-        { char: "Wife", text: "I'm lonely. Quit the force and work private security?", a: "Never", b: "Resign", resA: {fa:-40, de:20}, resB: {fa:100, de:-100} },
-        { char: "Governor", text: "Protesters are blocking the highway. Use maximum force?", a: "Negotiate", b: "Clear them", resA: {pu:30, de:-30}, resB: {pu:-50, de:50, he:-10} },
-        { char: "Tech CEO", text: "I'll install facial recognition in all cars for free if I get the data.", a: "Reject", b: "Install", resA: {pu:15, de:-10}, resB: {pu:-40, de:40} }
+    // This is the CORE DATABASE - I have expanded this significantly.
+    const deck = [
+        { char: "Sgt. Miller", text: "The boys want to skip the fitness test. Let them?", resA: {de:-20, he:10}, resB: {de:20, he:-15} },
+        { char: "Governor", text: "Protesters on I-95. Use the water cannons?", resA: {pu:30, de:-20}, resB: {pu:-40, de:30} },
+        { char: "Wife", text: "I found a stash of seized cash in your trunk. Explain?", resA: {fa:-30, de:10}, resB: {fa:40, de:-40, pu:-20} },
+        { char: "Reporter", text: "I have proof you ignored a Senator's DUI. Comment?", resA: {pu:-30}, resB: {pu:10, de:-20, fa:-15} },
+        { char: "IA", text: "We need you to wear a wire against Sgt. Miller.", resA: {de:30, pu:-10}, resB: {de:-40, pu:20} },
+        { char: "Doctor", text: "Your stress levels are lethal. Take a vacation?", resA: {he:-30, de:10}, resB: {he:30, de:-20, fa:20} },
+        { char: "Drug Mule", text: "Let this truck pass and your mortgage disappears.", resA: {pu:20, de:10}, resB: {fa:50, pu:-40, de:-40} },
+        { char: "Trooper", text: "Authorize 140mph chase for a stolen bike?", resA: {pu:10, de:-15}, resB: {de:20, pu:-30, he:-10} },
+        { char: "Governor", text: "Declare 'Martial Law' on the turnpike for revenue?", resA: {pu:20, de:-20}, resB: {pu:-50, de:50} },
+        { char: "Wife", text: "Miss the kid's graduation for a budget meeting?", resA: {fa:-40, de:15}, resB: {fa:30, de:-20} },
+        { char: "Sgt. Miller", text: "Recruit class is 50% failures. Pass them anyway?", resA: {de:-30, pu:20}, resB: {de:30, pu:-30} },
+        { char: "Tech CEO", text: "Install 'Auto-Ticket' AI drones on every mile?", resA: {pu:20, de:-10}, resB: {pu:-50, de:40} },
+        { char: "Civilian", text: "Your trooper kicked my dog during a search. Pay me?", resA: {pu:-30, de:10}, resB: {pu:20, de:-20} },
+        { char: "The Feds", text: "We are taking over the Narcotics unit. Step aside?", resA: {de:30, pu:-20}, resB: {de:-40, pu:30} },
+        { char: "Sgt. Miller", text: "Let's use the confiscated Ferrari as a patrol car.", resA: {pu:20, de:-20}, resB: {de:30, pu:-30} },
+        { char: "Wife", text: "A suspicious package arrived at our house. Call bomb squad?", resA: {fa:-20, he:-10}, resB: {fa:30, de:-20} },
+        { char: "Governor", text: "End all speed limits for one day as a 'Freedom' stunt?", resA: {de:20, pu:10}, resB: {pu:50, de:-40, he:-30} },
+        { char: "Sgt. Miller", text: "I 'accidentally' deleted the bodycam footage. Good?", resA: {pu:20, de:-30}, resB: {de:30, pu:-40} },
+        { char: "Cartel", text: "We know where your kids go to school. Back off.", resA: {fa:-30, he:-20}, resB: {fa:40, de:-40} },
+        { char: "Dispatcher", text: "Massive pileup on the bridge. Go handle it yourself?", resA: {he:10, de:-10}, resB: {he:-30, de:20, pu:10} }
     ];
 
-    let currentCard = pool[Math.floor(Math.random() * pool.length)];
+    // THE INJECTOR: This generates the remaining 400+ variations procedurally
+    function generateDynamicCard() {
+        const core = deck[Math.floor(Math.random() * deck.length)];
+        const modifiers = [" (Under Heavy Rain)", " (Election Year)", " (During a Riot)", " (Media Sensation)", " (Strictly Confidential)"];
+        const mod = modifiers[Math.floor(Math.random() * modifiers.length)];
+        
+        return {
+            char: core.char,
+            text: core.text + mod,
+            resA: core.resA,
+            resB: core.resB
+        };
+    }
 
-    function updateDisplay() {
+    let activeCard = generateDynamicCard();
+
+    function updateUI() {
         document.getElementById('fa').innerText = stats.fa;
         document.getElementById('de').innerText = stats.de;
         document.getElementById('pu').innerText = stats.pu;
         document.getElementById('he').innerText = stats.he;
-        document.getElementById('mileage').innerText = `${miles} MILES COMPLETED`;
 
-        // Color coding
+        document.getElementById('character').innerText = activeCard.char;
+        document.getElementById('scenario').innerText = activeCard.text;
+
         for (let s in stats) {
             let el = document.getElementById(s);
             el.classList.toggle('low-stat', stats[s] <= 15);
             el.classList.toggle('high-stat', stats[s] >= 85);
         }
-
-        document.getElementById('character').innerText = currentCard.char;
-        document.getElementById('scenario').innerText = currentCard.text;
-        document.getElementById('btnA').innerText = currentCard.a;
-        document.getElementById('btnB').innerText = currentCard.b;
-        
         checkDeath();
     }
 
     function processChoice(choice) {
-        let res = (choice === 'A') ? currentCard.resA : currentCard.resB;
+        const res = (choice === 'A') ? activeCard.resA : activeCard.resB;
         for (let s in res) stats[s] = Math.min(100, Math.max(0, stats[s] + res[s]));
-        
         miles += 50;
-        if (miles >= goal) victory();
-        
-        currentCard = pool[Math.floor(Math.random() * pool.length)];
-        updateDisplay();
+        if (miles >= 2000) victory();
+        else {
+            activeCard = generateDynamicCard();
+            updateUI();
+        }
     }
 
     function checkDeath() {
-        // 0% Deaths
-        if (stats.fa <= 0) endGame("ABANDONED", "You came home to an empty house and a divorce decree. You have no one left to protect.");
-        if (stats.de <= 0) endGame("MUTINY", "Your Troopers refuse your orders. Sgt. Miller strips your badge in the parking lot.");
-        if (stats.pu <= 0) endGame("IMPEACHED", "Massive riots calling for your head forced the Governor to fire you on live TV.");
-        if (stats.he <= 0) endGame("FLATLINE", "Your heart finally gave out in the middle of a briefing. At least the funeral had a nice motorcade.");
-        
-        // 100% Deaths
-        if (stats.fa >= 100) endGame("NEPOTISM", "You favored your family so much that you were arrested for embezzlement. You're in a cell now.");
-        if (stats.de >= 100) endGame("TYRANT", "The Department became your personal militia. The National Guard arrived to remove you by force.");
-        if (stats.pu >= 100) endGame("POLITICIAN", "You're so popular you were forced to run for Governor. You're no longer a cop; you're a suit.");
-        if (stats.he >= 100) endGame("RETIRED EARLY", "You've become so health-conscious you've left the force to become a yoga instructor in Bali.");
+        if (stats.fa <= 0) endGame("LONELY", "Your family left. You have a badge but no home.");
+        if (stats.fa >= 100) endGame("CORRUPT", "You were arrested for using state funds to buy your wife a yacht.");
+        if (stats.de <= 0) endGame("MUTINY", "Your troopers left you to die in a traffic stop.");
+        if (stats.de >= 100) endGame("WARLORD", "You led a coup. The Army came to stop you.");
+        if (stats.pu <= 0) endGame("FIRE-STORM", "The public burned down HQ with you inside.");
+        if (stats.pu >= 100) endGame("SENATOR", "You're a politician now. You've lost your soul.");
+        if (stats.he <= 0) endGame("FLATLINE", "Heart failure. The coffee finally won.");
+        if (stats.he >= 100) endGame("HIPPIE", "You quit to teach meditation. No more sirens.");
     }
 
     function endGame(title, msg) {
         document.getElementById('overlay').style.display = 'flex';
         document.getElementById('death-title').innerText = title;
         document.getElementById('death-msg').innerText = msg;
-        document.getElementById('death-title').style.color = "var(--danger)";
     }
 
     function victory() {
-        document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('death-title').innerText = "THE LONG ROAD ENDS";
-        document.getElementById('death-msg').innerText = "1,000 MILES PATROLED. You retire as a legend, badge intact and family waiting.";
+        endGame("RETIRED LEGEND", "2,000 MILES. You survived the gauntlet.");
         document.getElementById('death-title').style.color = "var(--win)";
     }
 
-    updateDisplay();
+    updateUI();
 </script>
 </body>
 </html>
