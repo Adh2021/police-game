@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE COUNTY: FINAL</title>
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        :root { --bg: #0d0d0d; --panel: #141414; --text: #c0c0c0; --green: #00ff41; --red: #ff3333; --blue: #00ccff; --amber: #ffb000; --font: 'Courier New', monospace; }
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; padding: 10px; }
+        .screen.active { display: flex; }
+        
+        .header { border-bottom: 2px solid var(--green); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 14px; text-transform: uppercase; }
+        .scanlines { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 99; }
+        
+        button { background: var(--panel); border: 1px solid var(--green); color: var(--green); padding: 15px; font-family: var(--font); font-size: 16px; text-transform: uppercase; margin-bottom: 10px; width: 100%; cursor: pointer; }
+        button:active { background: var(--green); color: var(--bg); }
+        button.secondary { border-color: #555; color: #888; }
+        button.danger { border-color: var(--red); color: var(--red); }
+
+        .bar-bg { background: #330000; height: 10px; width: 100%; margin-top: 5px; position: relative;}
+        .hp-bar { background: var(--red); height: 100%; width: 100%; transition: width 0.3s; }
+        .gold-disp { color: var(--amber); font-weight: bold; }
+        .save-indicator { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: #444; pointer-events: none; z-index: 100; transition: opacity 0.5s; opacity: 0; }
+
+        .hand-area { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; height: 150px; align-items: center; }
+        .card { 
+            min-width: 95px; height: 130px; background: #000; border: 1px solid #555; 
+            display: flex; flex-direction: column; padding: 5px; font-size: 10px; position: relative; 
+            transition: transform 0.1s; cursor: pointer; flex-shrink: 0;
+        }
+        .card:active { transform: translateY(-10px); border-color: #fff; }
+        .card.atk { border-color: var(--red); color: var(--red); }
+        .card.skill { border-color: var(--blue); color: var(--blue); }
+        .card.power { border-color: var(--amber); color: var(--amber); }
+        
+        .card-cost { position: absolute; top: 2px; right: 5px; font-size: 16px; font-weight: bold; }
+        .card-name { font-weight: bold; margin-bottom: 5px; font-size: 11px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        .card-desc { text-align: center; margin-top: auto; font-size: 10px; line-height: 1.2; }
+
+        .map-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px 0; }
+        .node { height: 100px; border: 1px dashed #444; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; text-align: center; cursor: pointer; }
+        .reward-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div id="save-msg" class="save-indicator">AUTO-SAVED</div>
+
+    <div id="screen-menu" class="screen active">
+        <h1 style="color:var(--green); text-align: center; margin-top:40px;">THE COUNTY</h1>
+        <div style="text-align: center; margin-bottom: 30px;">TRAFFIC DIVISION ROGUELIKE</div>
+        <button id="btn-continue" onclick="Game.load()" style="display:none; border-color:var(--amber); color:var(--amber);">RESUME SHIFT</button>
+        <button onclick="Game.init('new')">START NEW SHIFT</button>
+        <button class="secondary" onclick="localStorage.clear(); location.reload()">RESET DATA</button>
+    </div>
+
+    <div id="screen-map" class="screen">
+        <div class="header"><span>SECTOR <span id="sector-num">1</span></span><span class="gold-disp">★ <span id="map-gold">0</span></span></div>
+        <div class="map-grid" id="map-nodes"></div>
+        <button class="danger" onclick="Game.init('new')" style="margin-top:auto;">ABORT SHIFT</button>
+    </div>
+
+    <div id="screen-combat" class="screen">
+        <div class="header"><span>INCIDENT</span><span style="color:var(--amber)">⚡ <span id="combat-energy">3</span></span></div>
+        
+        <div style="border:1px solid var(--red); padding:10px; text-align:center; margin-bottom:10px;">
+            <div style="font-size:24px; margin-bottom:5px;" id="enemy-intent">⚠️</div>
+            <div id="enemy-name" style="font-weight:bold; font-size:14px;">SUSPECT</div>
+            <div class="bar-bg"><div class="hp-bar" id="enemy-hp-bar"></div></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px;">
+                <span id="enemy-hp-text">50/50</span>
+                <span>RESISTANCE</span>
+            </div>
+        </div>
+
+        <div style="border:1px solid var(--blue); padding:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:10px;">
+                <span>OFFICER</span>
+                <span id="player-hp-text">50/50</span>
+            </div>
+            <div class="bar-bg" style="background:#111;"><div class="hp-bar" id="player-hp-bar" style="background:var(--green)"></div></div>
+            <div style="margin-top:5px; font-weight:bold; color:var(--blue)">🛡️ <span id="player-block">0</span> SAFETY</div>
+        </div>
+
+        <div id="combat-log" style="font-size:10px; height:30px; overflow:hidden; color:#666; margin-top:5px; border-top:1px dashed #333;"></div>
+        
+        <div style="flex:1;"></div>
+        <div class="hand-area" id="hand-container"></div>
+        
+        <button onclick="Game.endTurn()" style="margin-top:5px; padding:10px;">END TURN</button>
+    </div>
+
+    <div id="screen-reward" class="screen">
+        <div class="header"><span>CASE CLOSED</span></div>
+        <div style="text-align:center;">
+            <h2 style="color:var(--green)">SUCCESS</h2>
+            <p>Earned <span class="gold-disp">★ 25 Rep</span></p>
+            <p>DRAFT NEW CARD:</p>
+        </div>
+        <div class="reward-grid" id="reward-container"></div>
+    </div>
+
+    <div id="screen-shop" class="screen">
+        <div class="header"><span>SUPPLY DEPOT</span><span class="gold-disp">★ <span id="shop-gold">0</span></span></div>
+        <div class="reward-grid" id="shop-container"></div>
+        <button onclick="Game.showMap()" style="margin-top:auto;">RETURN TO MAP</button>
+    </div>
+
+    <div id="screen-event" class="screen">
+        <div class="header"><span>DISPATCH</span></div>
+        <div id="event-text" style="padding:20px; border:1px solid #333; margin-bottom:20px;"></div>
+        <div id="event-opts"></div>
+    </div>
+
+<script>
+// --- DATABASE ---
+const CARDS = {
+    "strike": { name:"CITATION", cost:1, type:"atk", actions:[{type:"damage", val:6}], desc:"Deal 6 Dmg." },
+    "defend": { name:"LANE CTRL", cost:1, type:"skill", actions:[{type:"block", val:5}], desc:"Gain 5 Safety." },
+    "bash":   { name:"PIT MANEUVER", cost:2, type:"atk", actions:[{type:"damage", val:10}, {type:"status", target:"enemy", id:"vuln", val:2}], desc:"Deal 10. Apply 2 Tagged." },
+    "flash":  { name:"FLASHLIGHT", cost:0, type:"skill", actions:[{type:"status", target:"enemy", id:"weak", val:1}, {type:"draw", val:1}], desc:"Apply 1 Dazzled. Draw 1." },
+    "radio":  { name:"RADIO HQ", cost:1, type:"skill", actions:[{type:"draw", val:3}], desc:"Draw 3 Cards." },
+    "coffee": { name:"COFFEE", cost:0, type:"skill", flags:["exhaust"], actions:[{type:"heal", val:5}, {type:"energy", val:1}], desc:"Heal 5. Gain 1 AP. Exhaust." },
+    "ram":    { name:"RAM SPEED", cost:2, type:"atk", actions:[{type:"special", id:"body_slam"}], desc:"Deal Dmg equal to Safety." },
+    "spike":  { name:"SPIKE STRIP", cost:1, type:"power", actions:[{type:"buff", target:"player", id:"thorns", val:3}], desc:"Gain 3 Spikes." },
+    "auth":   { name:"AUTHORITY", cost:1, type:"power", actions:[{type:"buff", target:"player", id:"strength", val:2}], desc:"Gain 2 Authority (+2 Dmg)." },
+    "shotgun":{ name:"SHOTGUN", cost:2, type:"atk", actions:[{type:"damage", val:15}], desc:"Deal 15 Dmg." }
+};
+const POOL = ["bash", "flash", "radio", "coffee", "ram", "spike", "auth", "shotgun"];
+const ENEMIES = [
+    { name:"TEEN DRIVER", hp:25, dmg:6 },
+    { name:"DRUNK", hp:35, dmg:5, mechanics:["weak"] },
+    { name:"SPEEDER", hp:40, dmg:8 },
+    { name:"KAREN", hp:45, dmg:4, mechanics:["frail"] },
+    { name:"SEMI TRUCK", hp:80, dmg:12, type:"elite" }
+];
+
+// --- ENGINE ---
+const Game = {
+    state: {},
+
+    // SAVE SYSTEM
+    checkSave: () => {
+        if(localStorage.getItem('sheriff_v2')) document.getElementById('btn-continue').style.display = 'block';
+    },
+    save: () => {
+        localStorage.setItem('sheriff_v2', JSON.stringify(Game.state));
+        const el = document.getElementById('save-msg');
+        el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 2000);
+    },
+    load: () => {
+        const data = localStorage.getItem('sheriff_v2');
+        if(data) {
+            Game.state = JSON.parse(data);
+            if(Game.state.screen === 'combat') { Game.showScreen('combat'); Game.renderHand(); Game.updateUI(); }
+            else { Game.showMap(); }
+        }
+    },
+
+    // INIT
+    init: (mode) => {
+        if(mode === 'new') {
+            Game.state = {
+                player: { hp:50, maxHp:50, block:0, energy:3, maxEnergy:3, status:{} },
+                enemy: { hp:0, maxHp:0, intent:{}, status:{} },
+                masterDeck: ["strike","strike","strike","strike","strike","defend","defend","defend","defend","defend"], 
+                drawPile: [], hand: [], discardPile: [], exhaustPile: [],
+                turn: 1, sector: 1, gold: 0, screen: 'map'
+            };
+            Game.save();
+            Game.showMap();
+        }
+    },
+
+    // MAP
+    showMap: () => {
+        Game.state.screen = 'map';
+        Game.save();
+        Game.showScreen('map');
+        document.getElementById('map-gold').innerText = Game.state.gold;
+        document.getElementById('sector-num').innerText = Game.state.sector;
+        
+        const grid = document.getElementById('map-nodes');
+        grid.innerHTML = "";
+        const types = ["COMBAT", "COMBAT", "EVENT", "SHOP"];
+        
+        for(let i=0; i<3; i++) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            const el = document.createElement('div');
+            el.className = "node";
+            el.style.borderColor = type === "COMBAT" ? "var(--red)" : "var(--green)";
+            let icon = type === "COMBAT" ? "👮" : (type==="SHOP"?"🛒":"❓");
+            el.innerHTML = `<div style="font-size:24px; margin-bottom:5px">${icon}</div>${type}`;
+            el.onclick = () => Game.enterNode(type);
+            grid.appendChild(el);
+        }
+    },
+
+    enterNode: (type) => {
+        if(type === "COMBAT") Game.startCombat();
+        if(type === "SHOP") Game.startShop();
+        if(type === "EVENT") Game.startEvent();
+    },
+
+    // COMBAT CORE
+    startCombat: () => {
+        const s = Game.state;
+        s.screen = 'combat';
+        const t = ENEMIES[Math.floor(Math.random() * ENEMIES.length)];
+        s.enemy = { ...t, hp: t.hp, maxHp: t.hp, block:0, status:{} };
+        s.player.block = 0; s.player.energy = s.player.maxEnergy;
+        
+        // IMPORTANT: Copy Master Deck to Draw Pile
+        s.drawPile = [...s.masterDeck].sort(() => Math.random() - 0.5); 
+        s.hand = []; s.discardPile = []; s.exhaustPile = [];
+        
+        Game.showScreen('combat');
+        Game.determineIntent();
+        Game.startTurn();
+        Game.save();
+    },
+
+    startTurn: () => {
+        Game.state.player.block = 0;
+        Game.state.player.energy = Game.state.player.maxEnergy;
+        Game.draw(5);
+        Game.updateUI();
+    },
+
+    // ROBUST DRAW LOGIC
+    draw: (n) => {
+        const s = Game.state;
+        for(let i=0; i<n; i++) {
+            if(s.drawPile.length === 0) {
+                if(s.discardPile.length === 0) break; // Truly empty
+                // Reshuffle discard into draw
+                s.drawPile = s.discardPile.sort(() => Math.random() - 0.5);
+                s.discardPile = [];
+            }
+            s.hand.push(s.drawPile.pop());
+        }
+        Game.renderHand();
+    },
+
+    playCard: (idx) => {
+        const s = Game.state;
+        const cid = s.hand[idx];
+        const data = CARDS[cid];
+
+        if(s.player.energy < data.cost) { Game.log("Not enough Energy!"); return; }
+
+        s.player.energy -= data.cost;
+        s.hand.splice(idx, 1);
+
+        data.actions.forEach(act => {
+            if(act.type === 'damage') {
+                let d = act.val;
+                if(s.player.status.strength) d += s.player.status.strength;
+                if(s.enemy.status.vuln) d = Math.floor(d * 1.5);
+                s.enemy.hp -= d;
+                Game.log(`Hit for ${d}`);
+            }
+            if(act.type === 'block') s.player.block += act.val;
+            if(act.type === 'draw') Game.draw(act.val);
+            if(act.type === 'heal') s.player.hp = Math.min(s.player.hp + act.val, s.player.maxHp);
+            if(act.type === 'energy') s.player.energy += act.val;
+            if(act.type === 'buff') s.player.status[act.id] = (s.player.status[act.id]||0) + act.val;
+            if(act.type === 'status') {
+                let t = act.target === 'player' ? s.player : s.enemy;
+                t.status[act.id] = (t.status[act.id]||0) + act.val;
+            }
+            if(act.type === 'special' && act.id === 'body_slam') s.enemy.hp -= s.player.block;
+        });
+
+        if(data.flags && data.flags.includes("exhaust")) s.exhaustPile.push(cid);
+        else s.discardPile.push(cid);
+
+        Game.renderHand();
+        Game.updateUI();
+        if(s.enemy.hp <= 0) Game.winCombat();
+    },
+
+    endTurn: () => {
+        // Discard hand
+        Game.state.discardPile.push(...Game.state.hand);
+        Game.state.hand = [];
+        Game.renderHand();
+
+        // Enemy Action
+        const e = Game.state.enemy;
+        if(e.intent.type === 'atk') {
+            let d = e.intent.val;
+            if(e.status.weak) d = Math.floor(d * 0.75);
+            let blocked = Math.min(d, Game.state.player.block);
+            d -= blocked;
+            Game.state.player.hp -= d;
+            Game.log(`Took ${d} dmg`);
+        }
+        
+        if(e.status.vuln) e.status.vuln--;
+        if(e.status.weak) e.status.weak--;
+
+        if(Game.state.player.hp <= 0) {
+            localStorage.removeItem('sheriff_v2');
+            alert("E.O.W. - SHIFT ENDED");
+            location.reload();
+        } else {
+            Game.determineIntent();
+            Game.startTurn();
+        }
+    },
+
+    determineIntent: () => {
+        const e = Game.state.enemy;
+        if(Math.random() > 0.3) e.intent = { type:'atk', val: e.dmg };
+        else e.intent = { type:'buff', val:0 };
+        Game.updateUI();
+    },
+
+    winCombat: () => {
+        Game.state.gold += 25;
+        Game.state.sector++;
+        Game.save();
+        const cont = document.getElementById('reward-container');
+        cont.innerHTML = "";
+        for(let i=0; i<3; i++) {
+            const cid = POOL[Math.floor(Math.random()*POOL.length)];
+            Game.renderCard(cid, cont, () => {
+                Game.state.masterDeck.push(cid); // Add to PERMANENT deck
+                Game.showMap();
+            });
+        }
+        Game.showScreen('reward');
+    },
+
+    startShop: () => {
+        const cont = document.getElementById('shop-container');
+        document.getElementById('shop-gold').innerText = Game.state.gold;
+        cont.innerHTML = "";
+        for(let i=0; i<3; i++) {
+            const cid = POOL[Math.floor(Math.random()*POOL.length)];
+            const price = 50;
+            const wrap = document.createElement('div');
+            wrap.innerHTML = `<div style="text-align:center;color:var(--amber);">${price} Rep</div>`;
+            Game.renderCard(cid, wrap, () => {
+                if(Game.state.gold >= price) {
+                    Game.state.gold -= price;
+                    Game.state.masterDeck.push(cid);
+                    wrap.style.opacity = 0; wrap.style.pointerEvents='none';
+                    document.getElementById('shop-gold').innerText = Game.state.gold;
+                    Game.save();
+                } else alert("Need more Rep!");
+            });
+            cont.appendChild(wrap);
+        }
+        Game.showScreen('shop');
+    },
+
+    startEvent: () => {
+        const div = document.getElementById('event-text');
+        const opts = document.getElementById('event-opts');
+        div.innerText = "You find a bag of cash in the trunk.";
+        opts.innerHTML = "";
+        const btn1 = document.createElement('button');
+        btn1.innerText = "Take it (+50 Rep)";
+        btn1.onclick = () => { Game.state.gold += 50; Game.showMap(); };
+        const btn2 = document.createElement('button');
+        btn2.innerText = "Leave it (Heal 10)";
+        btn2.onclick = () => { Game.state.player.hp = Math.min(Game.state.player.hp+10, Game.state.player.maxHp); Game.showMap(); };
+        opts.appendChild(btn1); opts.appendChild(btn2);
+        Game.showScreen('event');
+    },
+
+    // UTILS
+    renderCard: (id, container, onClick) => {
+        const d = CARDS[id];
+        const el = document.createElement('div');
+        el.className = `card ${d.type}`;
+        el.onclick = onClick;
+        el.innerHTML = `<div class="card-cost">${d.cost}</div><div class="card-name">${d.name}</div><div class="card-desc">${d.desc}</div>`;
+        container.appendChild(el);
+    },
+    renderHand: () => {
+        const c = document.getElementById('hand-container');
+        c.innerHTML = "";
+        Game.state.hand.forEach((cid, idx) => Game.renderCard(cid, c, () => Game.playCard(idx)));
+    },
+    updateUI: () => {
+        const p = Game.state.player;
+        const e = Game.state.enemy;
+        document.getElementById('player-hp-text').innerText = `${p.hp}/${p.maxHp}`;
+        document.getElementById('player-hp-bar').style.width = (p.hp/p.maxHp*100)+"%";
+        document.getElementById('player-block').innerText = p.block;
+        document.getElementById('combat-energy').innerText = p.energy;
+        if(e.hp > 0) {
+            document.getElementById('enemy-hp-text').innerText = `${e.hp}/${e.maxHp}`;
+            document.getElementById('enemy-hp-bar').style.width = (e.hp/e.maxHp*100)+"%";
+            document.getElementById('enemy-intent').innerText = e.intent.type === 'atk' ? `⚠️ ${e.intent.val}` : "🛡️";
+            document.getElementById('enemy-name').innerText = e.name;
+        }
+    },
+    log: (msg) => { document.getElementById('combat-log').innerText = "> "+msg; },
+    showScreen: (id) => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+id).classList.add('active'); }
+};
+
+Game.checkSave();
+</script>
+</body>
+</html>
