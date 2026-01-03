@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE COUNTY: SEASONS</title>
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        :root { --bg: #0d0d0d; --panel: #141414; --text: #c0c0c0; --green: #00ff41; --red: #ff3333; --blue: #00ccff; --amber: #ffb000; --purple: #bd00ff; --font: 'Courier New', monospace; }
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* LAYOUT */
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; padding: 10px; }
+        .screen.active { display: flex; }
+        .scanlines { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 99; }
+        
+        /* UI */
+        .header { border-bottom: 2px solid var(--green); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 14px; text-transform: uppercase; }
+        button { background: var(--panel); border: 1px solid var(--green); color: var(--green); padding: 15px; font-family: var(--font); font-size: 16px; text-transform: uppercase; margin-bottom: 10px; width: 100%; cursor: pointer; transition: transform 0.05s; }
+        button:active { background: var(--green); color: var(--bg); transform: scale(0.98); }
+        .bar-bg { background: #330000; height: 10px; width: 100%; margin-top: 5px; position: relative; overflow: hidden; }
+        .hp-bar { background: var(--red); height: 100%; width: 100%; transition: width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1); }
+        .gold-disp { color: var(--amber); font-weight: bold; }
+        .sector-badge { color: var(--purple); font-weight: bold; border: 1px solid var(--purple); padding: 2px 5px; font-size: 10px;}
+
+        /* CARDS */
+        .hand-area { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; height: 150px; align-items: center; perspective: 1000px; }
+        .card { 
+            min-width: 95px; height: 130px; background: #000; border: 1px solid #555; 
+            display: flex; flex-direction: column; padding: 5px; font-size: 10px; position: relative; 
+            transition: transform 0.15s, border-color 0.1s; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+        .card.upgraded { border: 1px solid var(--green); box-shadow: 0 0 5px var(--green); }
+        .card.upgraded .card-name { color: var(--green); }
+        .card:active { transform: translateY(-15px) rotate(2deg); border-color: #fff; z-index: 10; }
+        .card.atk { border-color: var(--red); color: var(--red); }
+        .card.skill { border-color: var(--blue); color: var(--blue); }
+        .card.power { border-color: var(--amber); color: var(--amber); }
+        .card-cost { position: absolute; top: 2px; right: 5px; font-size: 16px; font-weight: bold; }
+        .card-name { font-weight: bold; margin-bottom: 5px; font-size: 11px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        .card-desc { text-align: center; margin-top: auto; font-size: 10px; line-height: 1.2; }
+
+        /* FX */
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 20% { transform: translate(-3px, 0px); } 40% { transform: translate(1px, -1px); } 60% { transform: translate(-3px, 1px); } 100% { transform: translate(0, 0); } }
+        .shake { animation: shake 0.4s; }
+        @keyframes floatUp { 0% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-40px) scale(1.5); } }
+        .float-text { position: absolute; font-weight: bold; font-size: 24px; animation: floatUp 0.8s forwards; pointer-events: none; z-index: 1000; text-shadow: 2px 2px 0 #000; }
+
+        /* GRID */
+        .map-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px 0; }
+        .node { height: 100px; border: 1px dashed #444; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; text-align: center; cursor: pointer; }
+        .reward-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
+        #save-msg { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: #444; pointer-events: none; z-index: 100; transition: opacity 0.5s; opacity: 0;}
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div id="save-msg">AUTO-SAVED</div>
+
+    <div id="screen-menu" class="screen active">
+        <h1 style="color:var(--green); text-align: center; margin-top:40px;">THE COUNTY</h1>
+        <div style="text-align: center; margin-bottom: 30px;">TRAFFIC DIVISION ROGUELIKE</div>
+        <button id="btn-continue" onclick="Game.load()" style="display:none; border-color:var(--amber); color:var(--amber);">RESUME SHIFT</button>
+        <button onclick="Game.init('new')">START NEW SHIFT</button>
+        <button class="secondary" onclick="localStorage.clear(); location.reload()">RESET DATA</button>
+    </div>
+
+    <div id="screen-map" class="screen">
+        <div class="header">
+            <span>MAP</span>
+            <span class="sector-badge" id="sector-name">SECTOR 1</span>
+            <span class="gold-disp">★ <span id="map-gold">0</span></span>
+        </div>
+        <div style="text-align:center; font-size:10px; color:#666">DISTRICT PROGRESS: <span id="sector-prog">0</span>/7</div>
+        <div class="map-grid" id="map-nodes"></div>
+    </div>
+
+    <div id="screen-combat" class="screen">
+        <div class="header"><span>INCIDENT</span><span style="color:var(--amber)">⚡ <span id="combat-energy">3</span></span></div>
+        
+        <div id="enemy-area" class="combat-box enemy" style="border:1px solid var(--red); padding:10px; text-align:center; margin-bottom:10px;">
+            <div style="font-size:24px; margin-bottom:5px;" id="enemy-intent">⚠️</div>
+            <div id="enemy-name" style="font-weight:bold; font-size:14px;">SUSPECT</div>
+            <div class="bar-bg"><div class="hp-bar" id="enemy-hp-bar"></div></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px;">
+                <span id="enemy-hp-text">50/50</span>
+                <span>RESISTANCE</span>
+            </div>
+            <div id="enemy-buffs" style="font-size:10px; color:var(--amber); margin-top:5px;"></div>
+        </div>
+
+        <div id="player-area" class="combat-box player" style="border:1px solid var(--blue); padding:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:10px;">
+                <span>OFFICER</span>
+                <span id="player-hp-text">50/50</span>
+            </div>
+            <div class="bar-bg" style="background:#111;"><div class="hp-bar" id="player-hp-bar" style="background:var(--green)"></div></div>
+            <div style="margin-top:5px; font-weight:bold; color:var(--blue)">🛡️ <span id="player-block">0</span> SAFETY</div>
+            <div id="player-buffs" style="font-size:10px; color:var(--green); margin-top:5px;"></div>
+        </div>
+
+        <div id="combat-log" style="font-size:10px; height:30px; overflow:hidden; color:#666; margin-top:5px; border-top:1px dashed #333;"></div>
+        <div style="flex:1;"></div>
+        <div class="hand-area" id="hand-container"></div>
+        <button onclick="Game.endTurn()" style="margin-top:5px; padding:10px;">END TURN</button>
+    </div>
+
+    <div id="screen-reward" class="screen">
+        <div class="header"><span>CASE CLOSED</span></div>
+        <div style="text-align:center;">
+            <h2 style="color:var(--green)">SUCCESS</h2>
+            <p>Earned <span class="gold-disp">★ 25 Rep</span></p>
+            <p>DRAFT NEW CARD:</p>
+        </div>
+        <div class="reward-grid" id="reward-container"></div>
+        <button onclick="Game.showMap()" style="margin-top:auto;">CONTINUE</button>
+    </div>
+
+    <div id="screen-rest" class="screen">
+        <div class="header"><span>THE DINER</span></div>
+        <div style="text-align:center; margin-top:50px;">
+            <h1 style="font-size:50px;">☕</h1>
+            <p>Take a break, Sheriff.</p>
+        </div>
+        <div style="margin-top:auto;">
+            <button onclick="Game.rest('heal')">DRINK COFFEE<br><span style="font-size:10px;color:#888">Heal 50% HP</span></button>
+            <button onclick="Game.showUpgrade()">REVIEW FILES<br><span style="font-size:10px;color:var(--green)">Upgrade a Card</span></button>
+        </div>
+    </div>
+
+    <div id="screen-upgrade" class="screen">
+        <div class="header"><span>SELECT CARD</span></div>
+        <div class="hand-area" id="upgrade-container" style="flex-wrap: wrap; height: auto; justify-content: center;"></div>
+        <button onclick="Game.showMap()" class="secondary" style="margin-top:auto;">CANCEL</button>
+    </div>
+
+<script>
+/* ------------------------------------------------------------------
+   DATABASE: CARDS (WITH UPGRADES)
+   ------------------------------------------------------------------ */
+const CARDS = {
+    // --- BASIC ---
+    "strike": { name:"CITATION", cost:1, type:"atk", actions:[{type:"damage", val:6}], desc:"Deal 6 Dmg.", up:"strike_p" },
+    "strike_p": { name:"CITATION+", cost:1, type:"atk", actions:[{type:"damage", val:9}], desc:"Deal 9 Dmg.", upgraded:true },
+    
+    "defend": { name:"LANE CTRL", cost:1, type:"skill", actions:[{type:"block", val:5}], desc:"Gain 5 Safety.", up:"defend_p" },
+    "defend_p": { name:"LANE CTRL+", cost:1, type:"skill", actions:[{type:"block", val:8}], desc:"Gain 8 Safety.", upgraded:true },
+
+    // --- COMMON ---
+    "bash":   { name:"PIT MANEUVER", cost:2, type:"atk", actions:[{type:"damage", val:10}, {type:"status", target:"enemy", id:"vuln", val:2}], desc:"Deal 10. Apply 2 Tagged.", up:"bash_p" },
+    "bash_p":   { name:"PIT MANEUVER+", cost:2, type:"atk", actions:[{type:"damage", val:14}, {type:"status", target:"enemy", id:"vuln", val:3}], desc:"Deal 14. Apply 3 Tagged.", upgraded:true },
+
+    "flash":  { name:"FLASHLIGHT", cost:0, type:"skill", actions:[{type:"status", target:"enemy", id:"weak", val:1}, {type:"draw", val:1}], desc:"Apply 1 Dazzled. Draw 1.", up:"flash_p" },
+    "flash_p":  { name:"FLASHLIGHT+", cost:0, type:"skill", actions:[{type:"status", target:"enemy", id:"weak", val:2}, {type:"draw", val:1}], desc:"Apply 2 Dazzled. Draw 1.", upgraded:true },
+
+    // --- UNCOMMON ---
+    "clothesline": { name:"CLOTHESLINE", cost:2, type:"atk", actions:[{type:"damage", val:12}, {type:"status", target:"enemy", id:"weak", val:2}], desc:"Deal 12. Apply 2 Dazzled.", up:"clothesline_p" },
+    "clothesline_p": { name:"CLOTHESLINE+", cost:2, type:"atk", actions:[{type:"damage", val:15}, {type:"status", target:"enemy", id:"weak", val:3}], desc:"Deal 15. Apply 3 Dazzled.", upgraded:true },
+
+    "flex": { name:"FLEX", cost:0, type:"skill", actions:[{type:"buff", target:"player", id:"strength", val:2}, {type:"status", target:"player", id:"strength_down", val:2}], desc:"Gain 2 Authority. Lose it end of turn.", up:"flex_p" },
+    "flex_p": { name:"FLEX+", cost:0, type:"skill", actions:[{type:"buff", target:"player", id:"strength", val:4}, {type:"status", target:"player", id:"strength_down", val:4}], desc:"Gain 4 Authority. Lose it end of turn.", upgraded:true },
+
+    // --- RARE ---
+    "ram":    { name:"RAM SPEED", cost:2, type:"atk", actions:[{type:"special", id:"body_slam"}], desc:"Deal Dmg equal to Safety.", up:"ram_p" },
+    "ram_p":    { name:"RAM SPEED+", cost:1, type:"atk", actions:[{type:"special", id:"body_slam"}], desc:"Deal Dmg equal to Safety.", upgraded:true },
+
+    "auth":   { name:"AUTHORITY", cost:1, type:"power", actions:[{type:"buff", target:"player", id:"strength", val:2}], desc:"Gain 2 Authority.", up:"auth_p" },
+    "auth_p":   { name:"AUTHORITY+", cost:1, type:"power", actions:[{type:"buff", target:"player", id:"strength", val:3}], desc:"Gain 3 Authority.", upgraded:true }
+};
+
+const POOL = ["bash", "flash", "clothesline", "flex", "ram", "auth"];
+
+/* ------------------------------------------------------------------
+   DATABASE: ENEMIES (BY SECTOR)
+   ------------------------------------------------------------------ */
+const ENEMIES = {
+    1: [ // HIGHWAY
+        { name:"TEEN DRIVER", hp:22, dmg:6 },
+        { name:"DRUNK", hp:25, dmg:5, mechanics:["weak"] },
+        { name:"SPEEDER", hp:30, dmg:8 },
+    ],
+    2: [ // SUBURBS
+        { name:"KAREN", hp:45, dmg:6, mechanics:["frail"] },
+        { name:"TEXTING DRIVER", hp:40, dmg:10 },
+        { name:"ROAD RAGE", hp:50, dmg:4, mechanics:["scale"] } // Scale = gains str every turn
+    ],
+    3: [ // DOWNTOWN
+        { name:"BANK ROBBERS", hp:70, dmg:12 },
+        { name:"ARMORED TRUCK", hp:80, dmg:8, mechanics:["thorns"] },
+        { name:"GETAWAY CAR", hp:60, dmg:15 }
+    ],
+    boss: [
+        { name:"THE TANKER", hp:120, dmg:12, type:"boss" },
+        { name:"CHIEF OF POLICE", hp:150, dmg:10, type:"boss" },
+        { name:"THE PHANTOM", hp:200, dmg:15, type:"boss" }
+    ]
+};
+
+/* ------------------------------------------------------------------
+   GAME ENGINE
+   ------------------------------------------------------------------ */
+const Game = {
+    state: {},
+    audioCtx: null,
+
+    initAudio: () => { if(!Game.audioCtx) Game.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); },
+    sfx: (type) => {
+        if(!Game.audioCtx) return;
+        if(Game.audioCtx.state === 'suspended') Game.audioCtx.resume();
+        const ctx = Game.audioCtx;
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        const t = ctx.currentTime;
+        
+        if(type==='hit'){ osc.type='square'; osc.frequency.setValueAtTime(150,t); osc.frequency.exponentialRampToValueAtTime(40, t+0.1); gain.gain.setValueAtTime(0.2,t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.1); osc.start(t); osc.stop(t+0.1); }
+        if(type==='ui'){ osc.type='sine'; osc.frequency.setValueAtTime(800,t); gain.gain.setValueAtTime(0.05,t); gain.gain.linearRampToValueAtTime(0, t+0.05); osc.start(t); osc.stop(t+0.05); }
+        if(type==='win'){ osc.type='triangle'; osc.frequency.setValueAtTime(300,t); osc.frequency.linearRampToValueAtTime(600, t+0.3); gain.gain.setValueAtTime(0.1,t); gain.gain.linearRampToValueAtTime(0, t+0.3); osc.start(t); osc.stop(t+0.3); }
+    },
+
+    fx: (type, targetId, val) => {
+        const el = document.getElementById(targetId);
+        if(type === 'shake') { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+        if(val) {
+            const f = document.createElement('div'); f.className = 'float-text'; f.innerText = val;
+            f.style.color = type==='dmg'?'var(--red)':(type==='block'?'var(--blue)':'var(--green)');
+            const r = el.getBoundingClientRect(); f.style.left=(r.left+r.width/2-10)+'px'; f.style.top=(r.top+20)+'px';
+            document.body.appendChild(f); setTimeout(()=>f.remove(), 800);
+        }
+    },
+
+    checkSave: () => { if(localStorage.getItem('sheriff_save')) document.getElementById('btn-continue').style.display='block'; },
+    save: () => { localStorage.setItem('sheriff_save', JSON.stringify(Game.state)); document.getElementById('save-msg').style.opacity=1; setTimeout(()=>document.getElementById('save-msg').style.opacity=0, 1500); },
+    load: () => { Game.initAudio(); Game.state = JSON.parse(localStorage.getItem('sheriff_save')); if(Game.state.screen==='combat'){Game.showScreen('combat');Game.updateUI();Game.renderHand();}else{Game.showMap();} },
+
+    init: (mode) => {
+        Game.initAudio(); Game.sfx('ui');
+        if(mode === 'new') {
+            Game.state = {
+                player: { hp:60, maxHp:60, block:0, energy:3, maxEnergy:3, status:{} },
+                enemy: { hp:0, maxHp:0, intent:{}, status:{} },
+                deck: ["strike","strike","strike","strike","defend","defend","defend","defend","bash"],
+                hand: [], discard: [], exhaust: [],
+                turn: 1, sector: 1, sectorProgress: 0, gold: 0, screen: 'map'
+            };
+            Game.save(); Game.showMap();
+        }
+    },
+
+    // --- MAP SYSTEM ---
+    showMap: () => {
+        Game.state.screen = 'map'; Game.save(); Game.showScreen('map');
+        const s = Game.state;
+        document.getElementById('map-gold').innerText = s.gold;
+        document.getElementById('sector-name').innerText = `SECTOR ${s.sector}`;
+        document.getElementById('sector-prog').innerText = s.sectorProgress;
+        
+        const grid = document.getElementById('map-nodes');
+        grid.innerHTML = "";
+        
+        // BOSS CHECK
+        if(s.sectorProgress >= 7) {
+            const el = document.createElement('div'); el.className = "node"; el.style.borderColor = "var(--purple)";
+            el.innerHTML = `<div style="font-size:30px">💀</div>BOSS`;
+            el.onclick = () => Game.enterNode('BOSS');
+            grid.appendChild(el);
+            return;
+        }
+
+        const types = ["COMBAT", "COMBAT", "COMBAT", "REST"];
+        // Ensure variety based on random
+        for(let i=0; i<3; i++) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            const el = document.createElement('div'); el.className = "node";
+            el.style.borderColor = type==="COMBAT"?"var(--red)":"var(--green)";
+            let icon="👮"; if(type==="REST") icon="☕";
+            el.innerHTML = `<div style="font-size:24px">${icon}</div>${type}`;
+            el.onclick = () => Game.enterNode(type);
+            grid.appendChild(el);
+        }
+    },
+
+    enterNode: (type) => {
+        Game.sfx('ui');
+        if(type === "COMBAT") Game.startCombat(false);
+        if(type === "BOSS") Game.startCombat(true);
+        if(type === "REST") Game.showScreen('rest');
+    },
+
+    // --- REST & UPGRADE ---
+    rest: (action) => {
+        if(action === 'heal') {
+            const amt = Math.floor(Game.state.player.maxHp * 0.5);
+            Game.state.player.hp = Math.min(Game.state.player.hp + amt, Game.state.player.maxHp);
+            Game.state.sectorProgress++;
+            Game.showMap();
+        }
+    },
+    showUpgrade: () => {
+        Game.showScreen('upgrade');
+        const grid = document.getElementById('upgrade-container');
+        grid.innerHTML = "";
+        Game.state.deck.forEach((cid, idx) => {
+            if(CARDS[cid].up) { // If card has upgrade
+                Game.renderCard(cid, grid, () => {
+                    Game.state.deck[idx] = CARDS[cid].up; // Replace card ID
+                    Game.state.sectorProgress++;
+                    Game.sfx('win');
+                    alert("UPGRADED!");
+                    Game.showMap();
+                });
+            }
+        });
+    },
+
+    // --- COMBAT ---
+    startCombat: (isBoss) => {
+        const s = Game.state; s.screen = 'combat';
+        
+        // SCALING DIFFICULTY
+        const pool = isBoss ? ENEMIES['boss'] : ENEMIES[s.sector] || ENEMIES[1];
+        const template = pool[Math.floor(Math.random() * pool.length)];
+        
+        s.enemy = { 
+            ...template, 
+            hp: template.hp + (s.sector * 5), // Scale HP
+            maxHp: template.hp + (s.sector * 5), 
+            block:0, status:{} 
+        };
+        
+        s.player.block = 0; s.player.energy = s.player.maxEnergy; s.player.status = {};
+        s.hand = []; s.discard = []; s.exhaust = [];
+        s.deck = [...s.state.deck].sort(() => Math.random() - 0.5);
+        
+        Game.showScreen('combat');
+        Game.determineIntent(); Game.startTurn(); Game.save();
+    },
+
+    startTurn: () => {
+        const s = Game.state; s.player.block = 0; s.player.energy = s.player.maxEnergy;
+        // STATUS DECAY
+        if(s.player.status.strength_down) {
+            s.player.status.strength -= s.player.status.strength_down;
+            delete s.player.status.strength_down;
+        }
+        Game.draw(5); Game.updateUI();
+    },
+
+    draw: (n) => {
+        const s = Game.state;
+        for(let i=0; i<n; i++) {
+            if(s.deck.length === 0) {
+                if(s.discard.length === 0) break;
+                s.deck = s.discard.sort(()=>Math.random()-0.5); s.discard = [];
+            }
+            s.hand.push(s.deck.pop());
+        }
+        Game.renderHand();
+    },
+
+    playCard: (idx) => {
+        const s = Game.state;
+        const cid = s.hand[idx];
+        const data = CARDS[cid];
+        if(s.player.energy < data.cost) { Game.sfx('ui'); return; }
+
+        s.player.energy -= data.cost; s.hand.splice(idx, 1);
+
+        data.actions.forEach(act => {
+            if(act.type === 'damage') {
+                let d = act.val;
+                if(s.player.status.strength) d += s.player.status.strength;
+                if(s.enemy.status.vuln) d = Math.floor(d * 1.5);
+                s.enemy.hp -= d;
+                Game.sfx('hit'); Game.fx('shake', 'enemy-area', "-"+d); Game.fx('dmg', 'enemy-area');
+            }
+            if(act.type === 'block') { s.player.block += act.val; Game.sfx('ui'); Game.fx('block', 'player-area', "+"+act.val); }
+            if(act.type === 'draw') Game.draw(act.val);
+            if(act.type === 'buff') s.player.status[act.id] = (s.player.status[act.id]||0) + act.val;
+            if(act.type === 'status') { let t = act.target==='player'?s.player:s.enemy; t.status[act.id] = (t.status[act.id]||0) + act.val; }
+            if(act.type === 'special' && act.id === 'body_slam') { let d = s.player.block; s.enemy.hp -= d; Game.sfx('hit'); Game.fx('shake', 'enemy-area', "-"+d); }
+        });
+
+        if(data.flags && data.flags.includes("exhaust")) s.exhaust.push(cid); else s.discard.push(cid);
+        Game.renderHand(); Game.updateUI();
+        if(s.enemy.hp <= 0) Game.winCombat();
+    },
+
+    endTurn: () => {
+        Game.state.discard.push(...Game.state.hand); Game.state.hand = []; Game.renderHand();
+        
+        const e = Game.state.enemy;
+        if(e.intent.type === 'atk') {
+            let d = e.intent.val;
+            // ENEMY SCALING
+            if(e.mechanics && e.mechanics.includes("scale")) d += Game.state.turn;
+
+            if(e.status.weak) d = Math.floor(d * 0.75);
+            let blocked = Math.min(d, Game.state.player.block);
+            d -= blocked;
+            if(d > 0) { Game.state.player.hp -= d; Game.fx('shake', 'player-area', "-"+d); Game.fx('dmg', 'player-area'); Game.sfx('hit'); }
+        }
+        
+        if(e.status.vuln) e.status.vuln--; if(e.status.weak) e.status.weak--;
+        
+        if(Game.state.player.hp <= 0) { localStorage.removeItem('sheriff_save'); alert("OFFICER DOWN"); location.reload(); }
+        else { Game.state.turn++; Game.determineIntent(); Game.startTurn(); }
+    },
+
+    determineIntent: () => {
+        const e = Game.state.enemy;
+        // Boss Logic
+        let dmg = e.dmg + Game.state.sector; 
+        if(Math.random() > 0.3) e.intent = { type:'atk', val: dmg };
+        else e.intent = { type:'buff', val:0 };
+        Game.updateUI();
+    },
+
+    winCombat: () => {
+        const s = Game.state;
+        s.gold += 25;
+        s.sectorProgress++;
+        s.deck.push(...s.hand, ...s.discard, ...s.exhaust); s.hand=[]; s.discard=[]; s.exhaust=[];
+        
+        Game.sfx('win');
+        
+        if(s.enemy.type === 'boss') {
+            alert("SECTOR CLEARED!");
+            s.sector++;
+            s.sectorProgress = 0;
+            if(s.sector > 3) { alert("YOU WIN! GAME OVER."); location.reload(); return; }
+        }
+
+        Game.save();
+        
+        const cont = document.getElementById('reward-container'); cont.innerHTML = "";
+        for(let i=0; i<3; i++) {
+            const cid = POOL[Math.floor(Math.random()*POOL.length)];
+            Game.renderCard(cid, cont, () => { Game.sfx('ui'); s.deck.push(cid); Game.showMap(); });
+        }
+        Game.showScreen('reward');
+    },
+
+    // --- RENDER ---
+    renderCard: (id, container, onClick) => {
+        const d = CARDS[id];
+        const el = document.createElement('div');
+        el.className = `card ${d.type} ${d.upgraded?'upgraded':''}`;
+        el.onclick = onClick;
+        el.innerHTML = `<div class="card-cost">${d.cost}</div><div class="card-name">${d.name}</div><div class="card-desc">${d.desc}</div>`;
+        container.appendChild(el);
+    },
+    
+    renderHand: () => {
+        const c = document.getElementById('hand-container'); c.innerHTML = "";
+        Game.state.hand.forEach((cid, idx) => Game.renderCard(cid, c, () => Game.playCard(idx)));
+    },
+
+    updateUI: () => {
+        const p = Game.state.player; const e = Game.state.enemy;
+        document.getElementById('player-hp-text').innerText = `${p.hp}/${p.maxHp}`;
+        document.getElementById('player-hp-bar').style.width = (p.hp/p.maxHp*100)+"%";
+        document.getElementById('player-block').innerText = p.block;
+        document.getElementById('combat-energy').innerText = p.energy;
+        document.getElementById('player-buffs').innerText = JSON.stringify(p.status).replace(/[{"}]/g, '').replace(/,/g, ' ');
+        
+        if(e.hp > 0) {
+            document.getElementById('enemy-hp-text').innerText = `${e.hp}/${e.maxHp}`;
+            document.getElementById('enemy-hp-bar').style.width = (e.hp/e.maxHp*100)+"%";
+            document.getElementById('enemy-intent').innerText = e.intent.type === 'atk' ? `⚠️ ${e.intent.val}` : "🛡️";
+            document.getElementById('enemy-name').innerText = e.name;
+            document.getElementById('enemy-buffs').innerText = JSON.stringify(e.status).replace(/[{"}]/g, '').replace(/,/g, ' ');
+        }
+    },
+
+    showScreen: (id) => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+id).classList.add('active'); }
+};
+
+Game.checkSave();
+</script>
+</body>
+</html>
