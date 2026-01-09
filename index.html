@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Troop 6: Blue Light</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a2a3a">
+</head>
+<body>
+
+    <div id="stats-container">
+        <div class="stat-box">
+            <span class="icon">🎩</span>
+            <div class="bar-container"><div id="bar-public" class="bar"></div></div>
+        </div>
+        <div class="stat-box">
+            <span class="icon">⭐</span>
+            <div class="bar-container"><div id="bar-command" class="bar"></div></div>
+        </div>
+        <div class="stat-box">
+            <span class="icon">❤️</span>
+            <div class="bar-container"><div id="bar-safety" class="bar"></div></div>
+        </div>
+        <div class="stat-box">
+            <span class="icon">🚓</span>
+            <div class="bar-container"><div id="bar-flow" class="bar"></div></div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="card">
+            <div id="card-category">CATEGORY</div>
+            <div id="card-text">Loading Troop 6 scenarios...</div>
+            <div id="card-id">#000</div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button id="btn-left" class="game-btn left">Option A</button>
+        <button id="btn-right" class="game-btn right">Option B</button>
+    </div>
+
+    <div id="modal" class="hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Game Over</h2>
+            <p id="modal-desc">Description</p>
+            <button id="btn-restart">New Patrol</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
