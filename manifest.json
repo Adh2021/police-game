@@ -1,0 +1,20 @@
+{
+  "name": "Troop 6: Blue Light",
+  "short_name": "Troop 6",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#003366",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/003366/d4af37?text=T6",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/003366/d4af37?text=T6",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
